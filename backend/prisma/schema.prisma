@@ -1,0 +1,132 @@
+// ────────────────────────────────────────────────────────────────────────────────
+//  Prisma schema for SocialHub -– PostgreSQL (Supabase) + Prisma Client
+// ────────────────────────────────────────────────────────────────────────────────
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SUPABASE_DB_URL")    // add this in your .env file
+}
+
+generator client {
+  provider = "prisma-client-js"
+  // If you like to use the new Prisma Client extensions uncomment next line
+  // previewFeatures = ["clientExtensions"]
+}
+@@index([username], map: "idx_user_username_trgm", type: Gist, using: Gist)
+
+
+//////////////////////
+//  Enumerations   //
+//////////////////////
+
+enum Privacy {
+  PUBLIC
+  FOLLOWERS
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  MENTION
+  SHARE
+}
+
+//////////////////////
+//     Models      //
+//////////////////////
+
+///  Users are identified by their **Firebase Auth UID**
+model User {
+  id            String          @id               // Firebase UID – no default
+  username      String          @unique
+  email         String          @unique
+  name          String
+  bio           String?
+  avatarUrl     String?
+  coverUrl      String?
+  location      String?
+  website       String?
+
+  // Relations
+  posts         Post[]
+  bookmarks     Bookmark[]
+  followers     Follow[]        @relation("userFollowers")
+  following     Follow[]        @relation("userFollowing")
+  notifications Notification[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+///  Main content entity – supports multi-image posts and basic privacy
+model Post {
+  id         String      @id @default(uuid())
+  author     User        @relation(fields: [authorId], references: [id])
+  authorId   String
+
+  content    String
+  imageUrls  String[]               // => Postgres text[]
+  privacy    Privacy     @default(PUBLIC)
+  likeCount  Int         @default(0)
+
+  // Relations
+  bookmarks  Bookmark[]
+  comments   Comment[]
+
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([authorId, createdAt])
+  @@index([content], map: "idx_post_content_trgm", type: Gist, using: Gist)
+}
+
+///  User-saved posts (a.k.a “Saved”) – one row per (user, post)
+model Bookmark {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])       // a post appears only once in a user’s bookmarks
+}
+
+///  Follower graph – (follower ➜ following)
+model Follow {
+  id            String   @id @default(uuid())
+  follower      User     @relation("userFollowing", fields: [followerId], references: [id])
+  followerId    String
+  following     User     @relation("userFollowers", fields: [followingId], references: [id])
+  followingId   String
+  createdAt     DateTime @default(now())
+
+  @@unique([followerId, followingId])  // avoid duplicate follows
+}
+
+///  Comments on a post (flat – no threads for now)
+model Comment {
+  id        String   @id @default(uuid())
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+///  Push-style notifications
+model Notification {
+  id        String            @id @default(uuid())
+  user      User              @relation(fields: [userId], references: [id])
+  userId    String
+  type      NotificationType
+  payload   Json              // flexible - stores postId, fromUserId, etc.
+  isRead    Boolean           @default(false)
+  createdAt DateTime          @default(now())
+
+  @@index([userId, isRead])
+  @@unique([id, userId])
+}
