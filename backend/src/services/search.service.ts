@@ -1,14 +1,7 @@
-/* ────────────────────────────────────────────────────────────────────────────
-   Search Service – central DB logic for global search
-   Location : backend/src/services/search.service.ts
-   ────────────────────────────────────────────────────────────────────────── */
-
 import { prisma } from '@/config/database';
 import type { Prisma } from '@prisma/client';
 
-/* -------------------------------------------------------------------------- */
-/*                               SELECT blocks                                */
-/* -------------------------------------------------------------------------- */
+
 
 const USER_SELECT = {
   id: true,
@@ -16,7 +9,7 @@ const USER_SELECT = {
   name: true,
   avatarUrl: true,
   createdAt: true,
-} as const;
+} satisfies Prisma.UserSelect;
 
 const POST_SELECT = {
   id: true,
@@ -26,27 +19,17 @@ const POST_SELECT = {
   privacy: true,
   createdAt: true,
   author: { select: USER_SELECT },
-} as const;
+} satisfies Prisma.PostSelect;
 
-/* -------------------------------------------------------------------------- */
-/*                                 Types                                      */
-/* -------------------------------------------------------------------------- */
 
 export interface SearchOptions {
   q: string;
   type?: 'posts' | 'users' | 'tags';
-  take: number;          // 1 – 50
-  cursor?: string;       // ISO timestamp
+  take: number;     // 1–50
+  cursor?: string;  // ISO timestamp
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               Main API                                     */
-/* -------------------------------------------------------------------------- */
 
-/**
- *  Perform a global search across posts, users, or tags.
- *  Returns an object that may include `posts`, `users`, `tags`, and `nextCursor`.
- */
 export const search = async ({
   q,
   type,
@@ -60,12 +43,12 @@ export const search = async ({
   const result: Record<string, unknown> = {};
   let nextCursor: string | undefined;
 
-  /* ── Posts ────────────────────────────────────────────────────────────── */
+  /* ───────────── Posts ───────────── */
   if (wantPosts) {
     const where: Prisma.PostWhereInput = {
       content: { contains: q, mode: 'insensitive' },
+      ...(cursor && { createdAt: { lt: new Date(cursor) } }),
     };
-    if (cursor) where.createdAt = { lt: new Date(cursor) };
 
     const posts = await prisma.post.findMany({
       where,
@@ -75,23 +58,22 @@ export const search = async ({
     });
 
     if (posts.length > take) {
-      const next = posts.pop();
-      nextCursor = next!.createdAt.toISOString();
+      const next = posts.pop()!;
+      nextCursor = next.createdAt.toISOString();
     }
 
     result.posts = posts;
   }
 
-  /* ── Users ────────────────────────────────────────────────────────────── */
+  /* ───────────── Users ───────────── */
   if (wantUsers) {
     const where: Prisma.UserWhereInput = {
       OR: [
         { username: { contains: q, mode: 'insensitive' } },
         { name:     { contains: q, mode: 'insensitive' } },
       ],
+      ...(!wantPosts && cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
     };
-    // If posts NOT requested we use cursor on users
-    if (!wantPosts && cursor) where.createdAt = { lt: new Date(cursor) };
 
     const users = await prisma.user.findMany({
       where,
@@ -101,26 +83,27 @@ export const search = async ({
     });
 
     if (!wantPosts && users.length > take) {
-      const next = users.pop();
-      nextCursor = next!.createdAt.toISOString();
+      const next = users.pop()!;
+      nextCursor = next.createdAt.toISOString();
     }
 
     result.users = users;
   }
 
-  /* ── Tags ─────────────────────────────────────────────────────────────── */
+  /* ───────────── Tags ────────────── */
   if (wantTags) {
-    // Raw SQL -> extract distinct hashtags that contain the query
+    // Raw SQL → distinct hashtags containing the query
     const tagsQuery = await prisma.$queryRaw<{ tag: string }[]>`
       SELECT DISTINCT LOWER(REPLACE(match, '#', '')) AS tag
       FROM (
         SELECT unnest(regexp_matches(content, '#[^\\s#]+', 'g')) AS match
         FROM "Post"
       ) t
-      WHERE match ILIKE '%' || ${'#' || q} || '%'
+      WHERE match ILIKE '%' || ${`#${q}`} || '%'
       LIMIT ${take}
     `;
-    result.tags = tagsQuery.map((t) => t.tag);
+
+    result.tags = tagsQuery.map(t => t.tag);
   }
 
   if (nextCursor) result.nextCursor = nextCursor;

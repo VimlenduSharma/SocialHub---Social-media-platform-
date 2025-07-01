@@ -47,5 +47,7 @@ export const deleteFile = (publicId: string): Promise<void> =>
       }
     );
   });
+  export const deleteByPublicId = (publicId: string) =>
+  cloudinary.uploader.destroy(publicId);
 
 export { cloudinary };

@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
     // …existing settings
+    "target": "ES2018",
+    "module": "CommonJS",
+    "moduleResolution": "Node", 
+    "lib": ["ES2018"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": "./src",
