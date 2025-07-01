@@ -4,25 +4,11 @@
    ─────────────────────────────────────────────────────────────────────────── */
 
 import type { Request, Response } from 'express';
-import { z } from 'zod';
 
 import * as searchService from '@/services/search.service';
 import { AppError } from '@/utils/AppError';
+import { searchQuerySchema } from '@/utils/validators';
 
-/* -------------------------------------------------------------------------- */
-/*                               Validators                                   */
-/* -------------------------------------------------------------------------- */
-
-const searchQuerySchema = z.object({
-  q:      z.string().trim().min(1).max(100),
-  type:   z.enum(['posts', 'users', 'tags']).optional(),
-  limit:  z.string().optional(),        // numeric string
-  cursor: z.string().optional(),        // ISO timestamp
-});
-
-/* -------------------------------------------------------------------------- */
-/*                               Controllers                                  */
-/* -------------------------------------------------------------------------- */
 
 export const globalSearch = async (req: Request, res: Response) => {
   /* ── 1. Validate & sanitise query params ──────────────────────────────── */

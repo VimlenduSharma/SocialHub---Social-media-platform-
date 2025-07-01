@@ -4,20 +4,17 @@
 
 datasource db {
   provider = "postgresql"
-  url      = env("SUPABASE_DB_URL")    // add this in your .env file
+  url      = env("DATABASE_URL")   
 }
 
 generator client {
   provider = "prisma-client-js"
   // If you like to use the new Prisma Client extensions uncomment next line
-  // previewFeatures = ["clientExtensions"]
+  previewFeatures = ["extendedIndexes"]
 }
-@@index([username], map: "idx_user_username_trgm", type: Gist, using: Gist)
 
 
-//////////////////////
-//  Enumerations   //
-//////////////////////
+
 
 enum Privacy {
   PUBLIC
@@ -32,9 +29,6 @@ enum NotificationType {
   SHARE
 }
 
-//////////////////////
-//     Models      //
-//////////////////////
 
 ///  Users are identified by their **Firebase Auth UID**
 model User {
@@ -57,6 +51,10 @@ model User {
 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+   comments   Comment[]
+
+  @@index([username], map: "idx_user_username")
 }
 
 ///  Main content entity – supports multi-image posts and basic privacy
@@ -78,7 +76,7 @@ model Post {
   updatedAt  DateTime    @updatedAt
 
   @@index([authorId, createdAt])
-  @@index([content], map: "idx_post_content_trgm", type: Gist, using: Gist)
+  @@index([content], map: "idx_post_content_trgm")
 }
 
 ///  User-saved posts (a.k.a “Saved”) – one row per (user, post)

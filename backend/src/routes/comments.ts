@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { authenticate } from '@/middlewares/authenticate';
 import { asyncHandler } from '@/middlewares/asyncHandler';
-import * as searchController from '@/controllers/search.controller';
+import * as commentController from '@/controllers/comment.controller';
 
 const router = Router();
 
-
-router.get('/', authenticate, asyncHandler(searchController.globalSearch));
+router.post(
+  '/:id',
+  authenticate,
+  asyncHandler(commentController.addComment)
+);
 
 export default router;

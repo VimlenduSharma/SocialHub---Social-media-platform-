@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
     // …existing settings
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"]

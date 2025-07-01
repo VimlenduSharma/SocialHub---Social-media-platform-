@@ -4,26 +4,14 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 import type { Request, Response } from 'express';
-import { z } from 'zod';
 
 import * as userService from '@/services/user.service';
 import { AppError } from '@/utils/AppError';
-
+import { updateProfileSchema } from '@/utils/validators';
 /* -------------------------------------------------------------------------- */
 /*                               Validators                                   */
 /* -------------------------------------------------------------------------- */
 
-const updateProfileSchema = z
-  .object({
-    name:       z.string().min(2).max(60).optional(),
-    username:   z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/).optional(),
-    bio:        z.string().max(160).optional().nullable(),
-    avatarUrl:  z.string().url().optional().nullable(),
-    coverUrl:   z.string().url().optional().nullable(),
-    location:   z.string().max(100).optional().nullable(),
-    website:    z.string().url().optional().nullable(),
-  })
-  .strict();
 
 /* -------------------------------------------------------------------------- */
 /*                               Controllers                                  */

@@ -1,15 +1,4 @@
-/* ────────────────────────────────────────────────────────────────────────────
-   Prisma Client – singleton helper
-   Location : backend/src/config/database.ts
-   ──────────────────────────────────────────────────────────────────────────── */
-
 import { PrismaClient } from '@prisma/client';
-
-/**
- *  In development Nodemon/Vite/ts-node may hot-reload, causing multiple Prisma
- *  clients to be instantiated. We store the client on the global object so the
- *  same instance is reused across reloads.
- */
 declare global {
   // eslint-disable-next-line no-var
   var __PRISMA__: PrismaClient | undefined;
@@ -19,6 +8,11 @@ declare global {
 const prisma =
   global.__PRISMA__ ??
   new PrismaClient({
+    datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
     log:
       process.env.NODE_ENV === 'development'
         ? ['query', 'info', 'warn', 'error']

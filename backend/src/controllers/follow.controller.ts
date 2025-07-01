@@ -1,32 +1,9 @@
-/* ─────────────────────────────────────────────────────────────────────────────
-   Follow Controller
-   Location : backend/src/controllers/follow.controller.ts
-   ─────────────────────────────────────────────────────────────────────────── */
-
 import type { Request, Response } from 'express';
-import { z } from 'zod';
 
 import * as followService from '@/services/follow.service';
 import { AppError } from '@/utils/AppError';
+import { followListQuerySchema } from '@/utils/validators';
 
-/* -------------------------------------------------------------------------- */
-/*                               Validators                                   */
-/* -------------------------------------------------------------------------- */
-
-/** GET /api/follows – query validator */
-const listSchema = z.object({
-  userId: z.string().optional(),                    // whose network? (default = me)
-  type:   z.enum(['followers', 'following']).optional(), // filter
-});
-
-/* -------------------------------------------------------------------------- */
-/*                               Controllers                                  */
-/* -------------------------------------------------------------------------- */
-
-/**
- *  POST /api/users/:id/follow
- *  Toggles follow / unfollow.  Returns { isFollowing: boolean }
- */
 export const toggleFollow = async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Unauthenticated');
 
@@ -52,7 +29,7 @@ export const toggleFollow = async (req: Request, res: Response) => {
 export const listFollows = async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Unauthenticated');
 
-  const { userId, type } = listSchema.parse(req.query);
+  const { userId, type } = followListQuerySchema.parse(req.query);
 
   const targetId = userId ?? req.user.uid;
 

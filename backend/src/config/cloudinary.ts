@@ -1,15 +1,5 @@
-/* ─────────────────────────────────────────────────────────────────────────────
-   Cloudinary – initialise once & expose convenient helpers
-   Location : backend/src/config/cloudinary.ts
-   Dependencies : `npm i cloudinary @types/cloudinary`
-   ─────────────────────────────────────────────────────────────────────────── */
-
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
-
-/* -------------------------------------------------------------------------- */
-/*                            Environment Safety-Net                          */
-/* -------------------------------------------------------------------------- */
 
 const {
   CLOUDINARY_CLOUD_NAME,
@@ -24,28 +14,12 @@ if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               Initialisation                               */
-/* -------------------------------------------------------------------------- */
-
 cloudinary.config({
-  cloud_name: CLOUDINARY_CLOUD_NAME,
-  api_key: CLOUDINARY_API_KEY,
-  api_secret: CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure:      true,
 });
-
-/* -------------------------------------------------------------------------- */
-/*                              Helper Functions                              */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Upload an **in-memory Buffer** (e.g. from Multer) to Cloudinary.
- *
- * @param buffer        Raw file buffer
- * @param folder        Optional Cloudinary folder (default `"uploads"`)
- * @param resourceType  `"image" | "video" | "raw"`  (default `"image"`)
- * @returns             `{ secure_url, public_id }`
- */
 export const uploadBuffer = (
   buffer: Buffer,
   folder = 'uploads',
@@ -62,10 +36,6 @@ export const uploadBuffer = (
 
     Readable.from(buffer).pipe(uploadStream);
   });
-
-/**
- * Convenience helper to delete a file by its `public_id`.
- */
 export const deleteFile = (publicId: string): Promise<void> =>
   new Promise((resolve, reject) => {
     cloudinary.uploader.destroy(
@@ -77,9 +47,5 @@ export const deleteFile = (publicId: string): Promise<void> =>
       }
     );
   });
-
-/* -------------------------------------------------------------------------- */
-/*                                Re-exports                                  */
-/* -------------------------------------------------------------------------- */
 
 export { cloudinary };

@@ -1,4 +1,5 @@
-import '@types/express-serve-static-core';
+import 'express-serve-static-core';
+import type { File as MulterFile } from 'multer';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -8,5 +9,7 @@ declare module 'express-serve-static-core' {
       name?: string;
       picture?: string;
     };
+    files?: MulterFile[];
+    file?: MulterFile;
   }
 }
